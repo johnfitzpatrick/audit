@@ -9,18 +9,18 @@ default_action :install
 
 action :install do
   # detect if installation is required
-  installation_required = inspec_info.nil? || !version.nil?
+  installation_required = inspec_gem_installed? || !version.nil?
 
   # detect if the same version is already installed
-  if !inspec_info.nil?
-    installed_version = inspec_info.version.to_s
+  if inspec_gem_installed?
+    installed_version = Inspec::VERSION
     Chef::Log.debug("Installed InSpec version: #{installed_version}")
     installation_required = false if version == installed_version
   end
   Chef::Log.info("Installation of InSpec required: #{installation_required}")
 
   # only uninstall if InSpec is installed
-  if installation_required && !inspec_info.nil?
+  if installation_required && inspec_gem_installed?
     converge_by 'uninstall all inspec and train gem versions' do
       uninstall_inspec_gem
     end
@@ -60,10 +60,11 @@ action_class do
     end
   end
 
-  def inspec_info
-    require 'rubygems'
-    Gem::Specification.find_by_name('inspec')
-  rescue LoadError
-    nil
+  def inspec_gem_installed?
+    begin
+      require 'inspec'
+    rescue LoadError
+      false
+    end
   end
 end
